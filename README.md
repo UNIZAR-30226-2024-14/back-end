@@ -28,15 +28,15 @@ sudo systemctl start postgresql.service
 Crear base de datos:
 
 ```bash
-  sudo -u postgres psql postgres
-  postgres=# CREATE DATABASE DECKKINGDB;
+sudo -u postgres psql postgres
+postgres=# CREATE DATABASE DECKKINGDB;
 ```
 
 Para cambiar la password de postgres:
 
 ```bash
-  sudo -u postgres psql postgres
-  postgres=# \password postgres
+sudo -u postgres psql postgres
+postgres=# \password postgres
 ```
 
 ## Lanzar
