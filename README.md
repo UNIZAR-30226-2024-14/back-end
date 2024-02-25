@@ -1,2 +1,47 @@
 # back-end
-Back-end para el proyecto!
+
+Usaremos Python 3.10.x
+
+## Instalar dependencias
+
+Aconsejable usar un entorno virtual.
+
+```bash
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+## Instalar PostgreSQL (Ubuntu) (soy noob) (opcional)
+
+Instalar PostgreSQL:
+
+```bash
+sudo apt install postgresql postgresql-contrib
+```
+
+Iniciar servicio de PostgreSQL:
+
+```bash
+sudo systemctl start postgresql.service
+```
+
+Crear base de datos:
+
+```bash
+  sudo -u postgres psql postgres
+  postgres=# CREATE DATABASE DECKKINGDB;
+```
+
+Para cambiar la password de postgres:
+
+```bash
+  sudo -u postgres psql postgres
+  postgres=# \password postgres
+```
+
+## Lanzar
+
+```bash
+cd src/
+uvicorn main:app --reload
+```
