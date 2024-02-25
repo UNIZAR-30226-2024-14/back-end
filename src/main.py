@@ -1,8 +1,8 @@
 from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
 from db import Base, engine, get_db
-from models import *
-from schemas import UserCreate
+from models.user import User
+from schemas.user import UserCreate
 
 Base.metadata.create_all(engine)
 

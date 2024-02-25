@@ -2,6 +2,13 @@
 
 Usaremos Python 3.10.x
 
+## Lanzar
+
+```bash
+cd src/
+uvicorn main:app --reload
+```
+
 ## Instalar dependencias
 
 Aconsejable usar un entorno virtual.
@@ -37,11 +44,4 @@ Para cambiar la password de postgres:
 ```bash
 sudo -u postgres psql postgres
 postgres=# \password postgres
-```
-
-## Lanzar
-
-```bash
-cd src/
-uvicorn main:app --reload
 ```
