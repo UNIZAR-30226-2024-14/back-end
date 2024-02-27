@@ -1,6 +1,8 @@
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
 from ..db import Base
 
+# See: https://fastapi.tiangolo.com/tutorial/sql-databases/
+
 class User(Base):
   __tablename__ = "users"
 

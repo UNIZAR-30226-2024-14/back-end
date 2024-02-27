@@ -4,6 +4,9 @@ from .db import Base, engine, get_db
 from .models.user import User
 from .schemas.user import UserCreate
 
+# https://fastapi.tiangolo.com/tutorial/
+# https://fastapi.tiangolo.com/python-types/
+
 Base.metadata.create_all(engine)
 
 app = FastAPI()

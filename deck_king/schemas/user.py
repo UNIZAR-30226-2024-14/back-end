@@ -1,5 +1,7 @@
 from pydantic import BaseModel
 
+# See: https://fastapi.tiangolo.com/tutorial/sql-databases/
+
 class UserBase(BaseModel):
   username: str
   email: str # TODO: maybe phone?
