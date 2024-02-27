@@ -12,7 +12,11 @@ class UserCreate(UserBase):
 
 class User(UserBase):
   id: int
+  is_online: bool = True
   # TODO: more fields
 
   class Config:
     orm_mode = True
+
+class UserInDB(User):
+  hashed_password: str

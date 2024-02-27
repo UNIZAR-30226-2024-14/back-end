@@ -8,6 +8,12 @@ Usaremos Python 3.10.x
 uvicorn deck_king.main:app --reload
 ```
 
+o
+
+```bash
+python -m uvicorn deck_king.main:app --reload
+```
+
 ## Instalar dependencias
 
 Aconsejable usar un entorno virtual.
