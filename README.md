@@ -5,8 +5,7 @@ Usaremos Python 3.10.x
 ## Lanzar
 
 ```bash
-cd src/
-uvicorn main:app --reload
+uvicorn deck_king.main:app --reload
 ```
 
 ## Instalar dependencias
