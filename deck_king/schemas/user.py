@@ -16,7 +16,8 @@ class User(UserBase):
   # TODO: more fields
 
   class Config:
-    orm_mode = True
+    # orm_mode = True renamed to
+    from_attributes = True
 
 class UserInDB(User):
   hashed_password: str

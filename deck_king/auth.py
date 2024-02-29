@@ -6,9 +6,7 @@ from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from .models.user import User
-from .db import get_db
 from .schemas.token import TokenData
-from .schemas.user import UserCreate
 
 # to get a string like this run:
 # openssl rand -hex 32
@@ -29,7 +27,7 @@ def hash_password(password: str | bytes) -> str:
 def get_user(username: str, db: Session) -> User | None:
   return db.query(User).filter(User.username == username).first()
 
-def authenticate_user(username: str, password: str, db: Session = Depends(get_db)) -> User | None:
+def authenticate_user(username: str, password: str, db: Session) -> User | None:
   user = get_user(username, db)
   if not user:
     return None
@@ -44,7 +42,8 @@ def create_access_token(data: dict, expires_delta: timedelta) -> str:
   encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
   return encoded_jwt
 
-async def get_current_user(token: str, db: Session = Depends(get_db)) -> User:
+# TODO: rename
+async def get_current_user(token: str, db: Session) -> User:
   credentials_exception = HTTPException(
     status_code=401,
     detail="Could not validate credentials",
