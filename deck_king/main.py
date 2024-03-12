@@ -25,12 +25,15 @@ app.add_middleware(
 app.include_router(user.router)
 app.include_router(websockets.router)
 
+def clean_database():
+  Base.metadata.drop_all(engine)
+  Base.metadata.create_all(engine)
+
 @app.get("/")
 def read_root():
   return {"Hello": "World"}
 
 @app.get("/clean")
 def clean_database_debug_only():
-  Base.metadata.drop_all(engine)
-  Base.metadata.create_all(engine)
+  clean_database()
   return {"Database": "Cleaned"}
