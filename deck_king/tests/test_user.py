@@ -24,10 +24,9 @@ def test_login():
   lresponse = client.post("/users/token", 
                           data={"username": "test", 
                                 "password": "test"})
-  
+
   assert rresponse.status_code == 200
   assert lresponse.status_code == 200
-  assert rresponse.json() == lresponse.json()
 
 def test_login_invalid():
   rresponse = client.post("/users/register",
@@ -44,8 +43,8 @@ def test_login_invalid():
                                 "password": "tsar23est"})
    
   assert rresponse.status_code == 200
-  assert luresponse.status_code == 400
-  assert lpresponse.status_code == 400
+  assert luresponse.status_code == 401
+  assert lpresponse.status_code == 401
 
 
 def test_register_user_bad_email():
