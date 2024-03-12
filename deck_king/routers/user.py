@@ -60,7 +60,7 @@ async def login_for_access_token(
   user = authenticate_user(form_data.username, form_data.password, db)
   if not user:
     raise HTTPException(
-      status_code=401,
+      status_code=400,
       detail="Incorrect username or password",
       headers={"WWW-Authenticate": "Bearer"},
     )

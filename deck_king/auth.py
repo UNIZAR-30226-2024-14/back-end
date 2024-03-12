@@ -41,7 +41,7 @@ def create_access_token(data: dict, expires_delta: timedelta) -> str:
 
 async def get_current_user(token: Annotated[str, Depends(oath2_scheme)], db: Annotated[Session, Depends(get_db)]) -> User:
   credentials_exception = HTTPException(
-    status_code=401,
+    status_code=400,
     detail="Could not validate credentials",
     headers={"WWW-Authenticate": "Bearer"},
   )
