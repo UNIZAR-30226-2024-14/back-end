@@ -21,17 +21,30 @@ class PlayerState(Enum):
 
 class Player(ABC):
   @abstractmethod
-  def on_update(self, help: str,
-                dealer_cards: list[Card],
-                states: dict[Player, PlayerState],
-                cards: dict[Player, list[Card]],
-                pot: dict[Player, int]) -> None:
+  async def on_update(self, help: str,
+                      dealer_cards: list[Card],
+                      states: dict[Player, PlayerState],
+                      cards: dict[Player, list[Card]],
+                      pot: dict[Player, int]) -> None:
     ...
 
   @abstractmethod
-  def on_turn(self, dealer_cards: list[Card], player_cards: list[Card], available_actions: list[PlayerAction]) -> PlayerAction:
+  async def on_turn(self, dealer_cards: list[Card], player_cards: list[Card], available_actions: list[PlayerAction]) -> PlayerAction:
     ...
 
   @abstractmethod
-  def get_bet(self) -> int:
+  async def on_end(self) -> None:
     ...
+
+  @abstractmethod
+  async def get_bet(self) -> int:
+    ...
+
+  @abstractmethod
+  def __hash__(self) -> int:
+    ...
+  
+  @abstractmethod
+  def __eq__(self, other) -> bool:
+    ...
+

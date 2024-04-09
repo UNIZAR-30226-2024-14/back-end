@@ -56,6 +56,9 @@ class Card:
     value = self.value if self.value < 11 else {11: "J", 12: "Q", 13: "K", 14: "A"}[self.value]
     return f"{value} of {self.suit.name}"
   
+  def to_dict(self) -> dict:
+    return {"suit": self.suit.name, "value": self.value, "blackjack_value": self.card_value.best()}
+  
   def __repr__(self) -> str:
     return str(self)
 

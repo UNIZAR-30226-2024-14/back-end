@@ -7,28 +7,33 @@ class Blackjack:
   def __init__(self, players: Iterable[Player]):
     self.players = list(players)
     self.deck = Deck()
+    self.playing = False
+  
+  def add_player(self, player: Player):
+    self.players.append(player)
+
+  def remove_player(self, player: Player):
+    self.players.remove(player)
+  
+  def start(self):
+    self.reset()
+
+  def reset(self):
+    self.playing = False
     self.deck.shuffle()
 
     self.player_state: dict[Player, PlayerState] = {player: PlayerState.PLAYING for player in self.players}
     self.pot: dict[Player, int] = {player: 0 for player in self.players}
     self.cards: dict[Player, list[Card]] = {player: [] for player in self.players}
     self.dealer_cards: list[Card] = []
-
-  def reset(self):
-    self.deck.reset()
-
-    self.player_state = {player: PlayerState.PLAYING for player in self.players}
-    self.pot = {player: 0 for player in self.players}
-    self.cards = {player: [] for player in self.players}
-    self.dealer_cards = []
   
   @property
   def dealer_value(self):
     return sum(self.dealer_cards).best()
 
-  def __notify_all(self, help: str = ""):
+  async def __notify_all(self, help: str = ""):
     for player in self.players:
-      player.on_update(help, self.dealer_cards, self.player_state, self.cards, self.pot)
+        await player.on_update(help, self.dealer_cards, self.player_state, self.cards, self.pot)
 
   def __available_actions(self, player: Player) -> list[PlayerAction]:
     actions = [PlayerAction.STAND, PlayerAction.HIT]
@@ -40,13 +45,15 @@ class Blackjack:
     elif action == PlayerAction.STAND:
       self.player_state[player] = PlayerState.STANDING
   
-  def run(self):
+  async def run(self):
+    self.playing = True
+    
     # Ask for bets
     for player in self.players:
-      self.pot[player] = player.get_bet()
-
+      self.pot[player] = await player.get_bet()
+    
     # Send info to players
-    self.__notify_all(help="bets")
+    await self.__notify_all(help="bets")
 
     # Deal cards: 2 for each player and 1 for the dealer (irl 2 for the dealer too, but 1 is hidden so to make the code easier we'll just deal 1)
     self.dealer_cards.append(self.deck.draw())
@@ -55,7 +62,7 @@ class Blackjack:
       self.cards[player].append(self.deck.draw())
 
     # Send info to players
-    self.__notify_all(help="deal cards")
+    await self.__notify_all(help="deal cards")
 
     # For each player:
     #   1. If player has blackjack, give them the pot x1.5, go to next player
@@ -78,24 +85,24 @@ class Blackjack:
 
         else:
           availible_actions = self.__available_actions(player)
-          action = player.on_turn(self.dealer_cards, self.cards[player], availible_actions)
+          action = await player.on_turn(self.dealer_cards, self.cards[player], availible_actions)
           self.__play_action(player, action)
 
         # Send info to players
-        self.__notify_all(help="player turn")
-
+        await self.__notify_all(help="player turn")
+    
     # Dealer's turn
     #   Reveal hidden card
     self.dealer_cards.append(self.deck.draw())
 
     # Send info to players
-    self.__notify_all(help="reveal dealer card")
+    await self.__notify_all(help="reveal dealer card")
 
     #   If dealer has less than 17, hit until 17 or more
     while (self.dealer_value < 17):
       self.dealer_cards.append(self.deck.draw())
       # Send info to players
-      self.__notify_all(help="dealer hit")
+      await self.__notify_all(help="dealer hit")
 
     #   If dealer has blackjack, give the pot to the dealer
     if self.dealer_value == 21:
@@ -105,7 +112,7 @@ class Blackjack:
         self.pot[player] = 0
 
       # Send info to players
-      self.__notify_all(help="dealer blackjack")
+      await self.__notify_all(help="end/dealer blackjack")
       return
 
     #   If dealer busts, give the pot to the players
@@ -116,7 +123,7 @@ class Blackjack:
         self.pot[player] *= 2 # TODO: Ask if this is correct
 
       # Send info to players
-      self.__notify_all(help="dealer bust")
+      await self.__notify_all(help="end/dealer bust")
       return
     
     #   If dealer has more than 17 but less than 21, compare with players
@@ -138,4 +145,7 @@ class Blackjack:
           self.pot[player] = 0
     
     # Send info to players
-    self.__notify_all(help="compare with dealer")
+    await self.__notify_all(help="end")
+
+    for player in self.players:
+      await player.on_end()
