@@ -42,7 +42,7 @@ class Engine:
     self.cards = {ws: [] for ws in self.connections}
     self.dealer_cards = []
 
-    self.broadcast_state()
+    await self.broadcast_state()
     # Send 1st player to bet
     # if len(self.connections) > 0:
       # conn_list = list(self.connections)
@@ -83,10 +83,6 @@ class Engine:
     return list(self.connections.keys())[self.turn]
   
   @property
-  def is_turn_over(self) -> bool:
-    return self.turn >= len(self.connections) - 1 # TODO bug
-  
-  @property
   def state(self) -> dict:
     return {
       "state": str(self.game_state),
@@ -104,27 +100,27 @@ class Engine:
   async def broadcast_state(self):
     await self.broadcast(self.state)
 
-  async def blackjack_or_bust(self, websocket):
+  async def has_blackjack(self, websocket):
     best_value = sum(self.cards[websocket]).best() 
     if best_value == 21:
-      self.players_state[websocket] = PlayerState.BLACKJACK
-      # Tell player
-      await websocket.send_json({"turn": self.connections[websocket], "blackjack": True})
       return True
-    elif best_value > 21:
-      self.players_state[websocket] = PlayerState.BUSTED
-      # Tell player
-      await websocket.send_json({"turn": self.connections[websocket], "busted": True})
+    return False
+
+  async def has_busted(self, websocket):
+    best_value = sum(self.cards[websocket]).best() 
+    if best_value > 21:
       return True
     return False
   
   async def dealer_turn(self):
-    # while dealer_value < 17, hit
+    await self.broadcast_state()
+
+    # Blackjack policy: while dealer_value < 17, dealer hits
     while sum(self.dealer_cards).best() < 17:
       self.dealer_cards.append(self.deck.draw())
       await self.broadcast_state()
-    self.game_state = GameState.END
-    await self.room.broadcast({"message": "NOW THE POTS ARE BEING DISTRIBUTED! PROBABLY IS WRONG BUT EASY TO FIX!"})
+
+    self.game_state = GameState.END # TODO: USELESS I THINK
 
     # Compare dealer with player
     # If dealer_value == 21, dealer wins
@@ -132,34 +128,46 @@ class Engine:
     # If player_value > dealer_value, player wins
     # If player_value == dealer_value, draw
     # If player_value < dealer_value, dealer wins
+
+    # Check no player is playing and game is over
     assert (all([self.players_state[ws] != PlayerState.PLAYING for ws in self.connections]) and self.game_state == GameState.END)
+
+    # Dealer's best value
     dealer_value = sum(self.dealer_cards).best()
+
+    # Compare dealer with players
     for ws, username in self.connections.items():
-      if self.players_state[ws] != PlayerState.BUSTED:
+      if self.players_state[ws] == PlayerState.BLACKJACK:
+        print(f"[INFO] {username} won with blackjack")
+        self.pots[ws] *= 1.5
+      elif self.players_state[ws] == PlayerState.BUSTED:
+        print(f"[INFO] {username} busted")
+        self.pots[ws] = 0
+      else:
+        # Player's best value
         player_value = sum(self.cards[ws]).best()
         print(f"[INFO] {username} vs dealer: {player_value} vs {dealer_value}")
         print(f"[INFO] {username} pot: {self.pots[ws]}")
         if player_value == dealer_value:
-          self.pots[ws] = 0
           print(f"[INFO] {username} draw")
-        elif player_value == 21:
-          self.pots[ws] *= 1.5
-          print(f"[INFO] {username} won with blackjack")
+          self.pots[ws] = 0
         elif player_value > dealer_value:
-          self.pots[ws] *= 2
           print(f"[INFO] {username} won")
+          self.pots[ws] *= 2
         elif player_value < dealer_value:
           self.pots[ws] = 0
           print(f"[INFO] {username} lost")
+        else:
+          raise Exception("This should not happen")
     
+    # await self.broadcast({"state": "END", "pots": {self.connections[ws]: self.pots[ws] for ws in self.connections}})
     await self.broadcast_state()
-    # TODO: RESET?
     await self.reset()
   
   async def feed(self, websocket, data):
-    print(f"[INFO] User: {self.connections[websocket]}, feeding: {data}")
+    # print(f"[INFO] User: {self.connections[websocket]}, feeding: {data}")
     if websocket != self.websocket:
-      print(f"[INFO] {self.connections[websocket]} Not your turn")
+      # print(f"[INFO] {self.connections[websocket]} Not your turn")
       return
 
     match self.players_state[websocket]:
@@ -172,93 +180,91 @@ class Engine:
 
             print(f"[INFO] {self.connections[websocket]} bet: {data['bet']}")
             
+            # Place bet
             self.pots[websocket] = data["bet"]
+            # Draw cards
             self.cards[websocket] = [self.deck.draw(), self.deck.draw()]
 
-            if self.is_turn_over:
-              print("[INFO] All players have bet")
-              self.game_state = GameState.PLAYING
-              self.dealer_cards = [self.deck.draw()] # One is hidden
-
-            self.turn += 1
-            if self.turn >= len(self.connections):
-              self.turn = 0
-            # else:
-            #   # Send next player to bet
-            #   ws = list(self.connections.keys())[self.turn]
-            #   await ws.send_json({"turn": self.connections[ws], "action": "bet"})
-            
             # Check for blackjack or bust
-            if await self.blackjack_or_bust(websocket):
-              print("[INFO] Player blackjack or busted busted in bet state")
-              # Broadcast new state
-              await self.broadcast_state()
+            if await self.has_blackjack(websocket):
+              print(f"[INFO] {self.connections[websocket]} has blackjack")
+              self.players_state[websocket] = PlayerState.BLACKJACK
+            elif await self.has_busted(websocket):
+              print(f"[INFO] {self.connections[websocket]} has busted")
+              self.players_state[websocket] = PlayerState.BUSTED
 
-              # If only one player, skip to dealer BUG I THINK
-              if len(self.connections) == 1:
+            # Pass turn
+            self.turn += 1
+            # If all players have bet
+            if self.turn >= len(self.connections):
+              print("[INFO] All players have bet")
+
+              # Finally reveal dealer cards
+              self.dealer_cards = [self.deck.draw()] # One is hidden
+              # Reset turn
+              self.turn = 0
+
+              # Change game state
+              if any([self.players_state[ws] == PlayerState.PLAYING for ws in self.connections]):
+                self.game_state = GameState.PLAYING
+              else: # All players have blackjack or busted
                 self.game_state = GameState.DEALER
                 await self.dealer_turn()
-
-              return
+                return # Don't broadcast state (it's done in dealer_turn)
             
             # Broadcast new state
             await self.broadcast_state()
 
-            # # Send available actions
-            # await self.broadcast_json({"turn": self.connections[websocket], "actions": ["hit", "stand"]})
           case GameState.PLAYING:
             if "action" not in data:
               return # TODO Maybe send error
             
             action = data["action"]
 
-            print("[INFO] Received action: ", action)
+            print(f"[INFO] {self.connections[websocket]} action: {action}")
 
             match action:
               case "hit":
-                await self.broadcast_json({"turn": self.connections[websocket], "ack": True})
-
+                # Draw card
                 self.cards[websocket].append(self.deck.draw())
 
-                # Check for blackjack or bust
-                if await self.blackjack_or_bust(websocket):
-                  print("[INFO] Player blackjack or busted busted in playing state")
-                  if self.is_turn_over:
-                    self.game_state = GameState.DEALER
+                keep_turn = True
 
+                # Check for blackjack or bust
+                if await self.has_blackjack(websocket):
+                  print(f"[INFO] {self.connections[websocket]} has blackjack")
+                  self.players_state[websocket] = PlayerState.BLACKJACK
+                  keep_turn = False
+                elif await self.has_busted(websocket):
+                  print(f"[INFO] {self.connections[websocket]} has busted")
+                  self.players_state[websocket] = PlayerState.BUSTED
+                  keep_turn = False
+                
+                if not keep_turn:
+                  # Pass turn
                   self.turn += 1
+                  # If all players have played
                   if self.turn >= len(self.connections):
                     self.turn = 0
-
+                    self.game_state = GameState.DEALER
+                    await self.dealer_turn()
+                else:
                   # Broadcast new state
                   await self.broadcast_state()
 
-                  # is_turn_over
-                  if self.game_state == GameState.DEALER:
-                    await self.dealer_turn()
-                  
-                  return
-
-                # Broadcast new state
-                await self.broadcast_state()
-
-                # Send available actions
-                await self.websocket.send_json({"turn": self.connections[websocket], "actions": ["hit", "stand"]})
               case "stand":
                 self.players_state[websocket] = PlayerState.STANDING
 
-                if self.is_turn_over:
-                  self.game_state = GameState.DEALER
-
+                # Pass turn
                 self.turn += 1
+                # If all players have played
                 if self.turn >= len(self.connections):
                   self.turn = 0
-
-                # Broadcast new state
-                await self.broadcast_state()
-
-                if self.game_state == GameState.DEALER:
+                  self.game_state = GameState.DEALER
                   await self.dealer_turn()
+                else:
+                  # Broadcast new state
+                  await self.broadcast_state()
 
               # case "double": # TODO 
               case _:

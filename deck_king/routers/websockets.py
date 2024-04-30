@@ -61,7 +61,7 @@ async def blackjack_endpoint(websocket: WebSocket, room_id: str, access_token: s
 
   await engine.connect(websocket, username)
   # await websocket.send_json({"action": "bet"})
-  await engine.broadcast_state()
+  # await websocket.send_json(engine.state)
   try:
     while True:
       data = await websocket.receive_json(mode="text")
