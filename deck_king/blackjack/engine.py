@@ -175,13 +175,13 @@ class Engine:
         # Game state machine
         match self.game_state:
           case GameState.BET:
-            if "bet" not in data:
+            if data["action"] != "bet":
               return # TODO Maybe send error
 
-            print(f"[INFO] {self.connections[websocket]} bet: {data['bet']}")
+            print(f"[INFO] {self.connections[websocket]} bet: {data['value']}")
             
             # Place bet
-            self.pots[websocket] = data["bet"]
+            self.pots[websocket] = data["value"]
             # Draw cards
             self.cards[websocket] = [self.deck.draw(), self.deck.draw()]
 
