@@ -2,6 +2,8 @@ from fastapi.testclient import TestClient
 
 from ..main import app, clean_database
 
+# https://fastapi.tiangolo.com/tutorial/testing/
+
 client = TestClient(app)
 
 def setup_function():

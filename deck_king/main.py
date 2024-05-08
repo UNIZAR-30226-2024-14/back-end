@@ -1,9 +1,12 @@
 from fastapi import FastAPI
 from .db import Base, engine
-from .routers import user
+from .routers import user, blackjack
 from .routers import websockets
 
 from fastapi.middleware.cors import CORSMiddleware
+
+import logging
+logging.getLogger('passlib').setLevel(logging.ERROR) # Hide bcrypt warnings
 
 # https://fastapi.tiangolo.com/tutorial/
 # https://fastapi.tiangolo.com/python-types/
@@ -24,6 +27,7 @@ app.add_middleware(
 
 app.include_router(user.router)
 app.include_router(websockets.router)
+app.include_router(blackjack.router)
 
 def clean_database():
   Base.metadata.drop_all(engine)
