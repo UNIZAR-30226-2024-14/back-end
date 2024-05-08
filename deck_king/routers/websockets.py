@@ -3,7 +3,6 @@ from sqlalchemy.orm import Session
 from ..auth import get_current_user
 from ..db import get_db
 import time
-import sys
 
 from .ws.chat import ChatManager
 # from .ws.blackjack import BlackjackManager
@@ -43,7 +42,7 @@ async def chat_endpoint(websocket: WebSocket, room_id: str, access_token: str = 
 
       # if sync then sync
 
-      await room.broadcast({"time": time.time(), "username":username, "msg": data["message"]}, save=True)
+      await room.broadcast({"time": time.time(), "username": username, "message": data["message"]}, save=True)
   except WebSocketDisconnect:
     chat_manager.disconnect(room_id, websocket)
     await room.broadcast({"time": time.time(), "username":username, "msg": "left the chat", "disconnected": True}, save=False)
@@ -61,15 +60,13 @@ async def blackjack_endpoint(websocket: WebSocket, room_id: str, access_token: s
   username = access_token
 
   await engine.connect(websocket, username)
-  engine.reset()
+  # await websocket.send_json(engine.state)
   try:
     while True:
       data = await websocket.receive_json(mode="text")
       
       if data == {}:
         continue
-
-      print("RECEIVED DATA: ", data)
 
       await engine.feed(websocket, data)
 

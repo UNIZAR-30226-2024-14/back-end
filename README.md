@@ -50,3 +50,105 @@ Para cambiar la password de postgres:
 sudo -u postgres psql postgres
 postgres=# \password postgres
 ```
+
+## API
+
+## REST API
+
+TODO
+
+## Websockets schema
+
+### Blackjack
+
+Server will always return a JSON messages with the following structure:
+
+```json
+{
+    "state": "game_state",
+    "turn": "username",
+    "pots": {
+        "username": "username"
+    },
+    "cards": {
+      "username": [
+        {
+          "suit": "suit",
+          "value": "value",
+          "blackjack_value": 0
+        }
+      ]
+    },
+    "dealer_cards": [
+      {
+        "suit": "suit",
+        "value": "value",
+        "blackjack_value": 0
+      }
+    ],
+    "player_state": {
+      "username": "player_state"
+    }
+}
+```
+
+Where:
+
++ `game_state` can be:
+  + `GameState.BET`: The game is in bet stage.
+  + `GameState.PLAYING`: The game is playing.
+  + `GameState.DEALER`: Dealer plays and game is finishing.
+  + `GameState.END`: The game is in end stage.
+
++ `player_state` can be:
+  + `PlayerState.PLAYING`: The player is playing.
+  + `PlayerState.STANDING`: The player played stand.
+  + `PlayerState.BLACKJACK`: The player got blackjack.
+  + `PlayerState.BUSTED`: The player busted.
+
+Client should send a JSON with the wanted action when it's their turn:
+
+When the game is in `GameState.BET`:
+
+```json
+{
+    "action": "bet",
+    "value": 0
+}
+```
+
+When the game is in `GameState.PLAYING`:
+
+```json
+{
+    "action": "hit"
+}
+```
+
+or
+
+```json
+{
+    "action": "stand"
+}
+```
+
+### Chat
+
+Chat is very simple, server will broadcast the incoming messages to all clients. With the following structure:
+
+```json
+{
+  "time": "unix_timestamp",
+  "username": "username",
+  "message": "message"
+}
+```
+
+Client should send a JSON with the message to send:
+
+```json
+{
+  "message": "message"
+}
+```
