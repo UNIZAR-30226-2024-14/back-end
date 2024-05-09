@@ -21,7 +21,7 @@ class Engine:
     
     self.game_state: GameState = ...
     self.players_state: dict[WebSocket, PlayerState] = ... 
-    self.pots: dict[WebSocket, int] = ...
+    self.pots: dict[WebSocket, float] = ...
     self.cards: dict[WebSocket, list[Card]] = ...
     self.dealer_cards: list[Card] = ...
 
@@ -38,7 +38,7 @@ class Engine:
     self.deck.shuffle()
     self.game_state = GameState.BET
     self.players_state = {ws: PlayerState.PLAYING for ws in self.connections}
-    self.pots = {ws: 0 for ws in self.connections}
+    self.pots = {ws: 0.0 for ws in self.connections}
     self.cards = {ws: [] for ws in self.connections}
     self.dealer_cards = []
 
@@ -64,7 +64,7 @@ class Engine:
       await self.reset()
   
   def disconnect(self, websocket: WebSocket):
-    if websocket == self.websocket:
+    if websocket == self.websocket: # TODO: might not work
       self.turn += 1
       if self.turn >= len(self.connections):
         self.turn = 0
@@ -181,7 +181,7 @@ class Engine:
             print(f"[INFO] {self.connections[websocket]} bet: {data['value']}")
             
             # Place bet
-            self.pots[websocket] = data["value"]
+            self.pots[websocket] = float(data["value"])
             # Draw cards
             self.cards[websocket] = [self.deck.draw(), self.deck.draw()]
 

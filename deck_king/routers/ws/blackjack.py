@@ -1,28 +1,23 @@
-from ...blackjack import Blackjack
-from .wsplayer import WSPlayer
+from ...blackjack.engine import Engine
+from fastapi import WebSocket
 
 class BlackjackManager:
   def __init__(self):
-    self.rooms: dict[str, Blackjack] = {}
+    self.rooms: dict[str, Engine] = {}
 
-  async def connect(self, key: str, player: WSPlayer) -> None:
+  async def connect(self, key: str, player: WebSocket, username: str) -> Engine:
     if key not in self.rooms:
       print(f"Creating new Blackjack room#{key}")
-      self.rooms[key] = Blackjack([])
+      self.rooms[key] = Engine()
     
-    await player.websocket.accept()
-    self.rooms[key].add_player(player)
+    await self.rooms[key].connect(player, username)
+    return self.rooms[key]
   
-  def playing(self, key: str, player: WSPlayer) -> bool:
+  def disconnect(self, key: str, player: WebSocket) -> None:
     if key in self.rooms:
-      return player in self.rooms[key].players
-    return False
-
-  def disconnect(self, key: str, player: WSPlayer) -> None:
-    if key in self.rooms:
-      self.rooms[key].remove_player(player)
+      self.rooms[key].disconnect(player)
 
       # Small GC
-      if len(self.rooms[key].players) == 0:
-        print(f"Room#{key} is empty, deleting it")
+      if len(self.rooms[key].connections) == 0:
+        print(f"Blackjack room#{key} is empty, deleting it")
         del self.rooms[key]
