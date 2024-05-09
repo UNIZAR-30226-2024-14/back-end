@@ -6,7 +6,6 @@ class BJTable(BaseModel):
   player2: int
   player3: int
   player4: int
-  player5: int
   n_players: int
 
   class Config:

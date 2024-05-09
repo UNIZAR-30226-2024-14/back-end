@@ -9,9 +9,8 @@ class BJTable(Base):
   player2 = Column(Integer, ForeignKey("users.id"), nullable=True)
   player3 = Column(Integer, ForeignKey("users.id"), nullable=True)
   player4 = Column(Integer, ForeignKey("users.id"), nullable=True)
-  player5 = Column(Integer, ForeignKey("users.id"), nullable=True)
 
   # Derivated field
   @property
   def n_players(self):
-    return sum([1 for player in [self.player1, self.player2, self.player3, self.player4, self.player5] if player is not None])
+    return sum([1 for player in [self.player1, self.player2, self.player3, self.player4] if player is not None])
