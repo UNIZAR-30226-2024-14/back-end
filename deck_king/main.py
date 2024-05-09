@@ -35,7 +35,7 @@ def clean_database():
 
 @app.get("/")
 def read_root():
-  return {"Hello": "World"}
+  return {"hello": "world"}
 
 @app.get("/clean")
 def clean_database_debug_only():
