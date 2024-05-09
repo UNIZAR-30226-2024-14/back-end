@@ -1,0 +1,15 @@
+name: DigitalOcean droplet deployment
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: self-hosted 
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run
+        run: docker compose up -d
