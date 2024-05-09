@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 class UserBase(BaseModel):
   username: str
-  email: str # TODO: maybe phone?
+  email: str
 
 # So that the password wont be returned in the response
 class UserCreate(UserBase):
@@ -13,7 +13,7 @@ class UserCreate(UserBase):
 class User(UserBase):
   id: int
   is_online: bool = True
-  # TODO: more fields
+  credit: int
 
   class Config:
     # orm_mode = True renamed to

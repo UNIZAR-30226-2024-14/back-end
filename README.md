@@ -55,6 +55,57 @@ postgres=# \password postgres
 
 ## REST API
 
+Also at localhost:8000/docs
+
+### Users
+
+#### POST /users/register
+
+Registers user
+
+##### Request body
+
+```json
+{
+    "username": "username",
+    "email": "email",
+    "password": "password"
+}
+```
+
+##### Response
+
+```json
+{
+    "access_token": "access_token",
+    "token_type": "token_type"
+}
+````
+
+#### POST /users/token
+
+Our 'login' endpoint.
+
+##### Request body
+
+```json
+{
+    "username": "username",
+    "password": "password"
+}
+```
+
+##### Respose
+
+```json
+{
+    "access_token": "access_token",
+    "token_type": "token_type"
+}
+````
+
+### Blackjack
+
 TODO
 
 ## Websockets schema
@@ -152,3 +203,7 @@ Client should send a JSON with the message to send:
   "message": "message"
 }
 ```
+
+## Database
+
+![Database](doc/db.png)

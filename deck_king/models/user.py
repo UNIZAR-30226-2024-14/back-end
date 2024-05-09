@@ -8,9 +8,7 @@ class User(Base):
 
   id = Column(Integer, primary_key=True, index=True, autoincrement=True, unique=True)
   username = Column(String, unique=True, index=True)
-  # Or phone bc i think i'll be easier to send sms
   email = Column(String, unique=True, index=True)
   hashed_password = Column(String)
   is_online = Column(Boolean, default=True)
-  # last_seen
-
+  credit = Column(Integer, default=0)
