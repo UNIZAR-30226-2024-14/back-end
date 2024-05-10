@@ -46,7 +46,16 @@ async def leave(table_id: int, user: Annotated[User, Depends(get_current_user)],
       setattr(table, f"player{i+1}", None)
       db.commit()
       return {"success": True}
-  raise HTTPException(status_code=400, detail="User is not in table") 
+  raise HTTPException(status_code=400, detail="User is not in table")
+
+@router.post("/delete/{table_id}")
+async def delete(table_id: int, user: Annotated[User, Depends(get_current_user)], db: Session = Depends(get_db)):
+  table = db.query(BJTable).filter(BJTable.id == table_id).first()
+  if table.n_players == 0:
+    db.delete(table)
+    db.commit()
+    return {"success": True}
+  raise HTTPException(status_code=400, detail="Users still in table")
 
 @router.post("/search")
 async def search(db: Session = Depends(get_db)):

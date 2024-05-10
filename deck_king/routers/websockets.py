@@ -47,8 +47,6 @@ async def chat_endpoint(websocket: WebSocket, room_id: str, access_token: str = 
     chat_manager.disconnect(room_id, websocket)
     await room.broadcast({"time": time.time(), "username":username, "msg": "left the chat", "disconnected": True}, save=False)
 
-# engine = Engine()
-
 @router.websocket("/blackjack/{room_id}")
 async def blackjack_endpoint(websocket: WebSocket, room_id: str, access_token: str = Query(...), db: Session = Depends(get_db)):
   # try:
@@ -59,10 +57,7 @@ async def blackjack_endpoint(websocket: WebSocket, room_id: str, access_token: s
 
   username = access_token
 
-  # await engine.connect(websocket, username)
   engine = await blackjack_manager.connect(room_id, websocket, username)
-
-  # await websocket.send_json(engine.state)
   try:
     while True:
       data = await websocket.receive_json(mode="text")
@@ -71,11 +66,8 @@ async def blackjack_endpoint(websocket: WebSocket, room_id: str, access_token: s
         continue
 
       await engine.feed(websocket, data)
-
-      # await room.broadcast({"time": time.time(), "username":username, "msg": data["message"]}, save=True)
   except WebSocketDisconnect:
     engine.disconnect(websocket)
-    # await room.broadcast({"time": time.time(), "username":username, "msg": "left the chat", "disconnected": True}, save=False)
   
 # TODO FOR TESTING PURPOSES ONLY
 
