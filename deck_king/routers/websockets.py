@@ -5,7 +5,7 @@ from ..db import get_db
 import time
 
 from .ws.chat import ChatManager
-# from .ws.blackjack import BlackjackManager
+from .ws.blackjack import BlackjackManager
 from ..blackjack.engine import Engine
 
 # See: https://fastapi.tiangolo.com/tutorial/bigger-applications/
@@ -19,7 +19,7 @@ router = APIRouter(
 )
 
 chat_manager = ChatManager()
-# blackjack_manager = BlackjackManager()
+blackjack_manager = BlackjackManager()
 
 @router.websocket("/chat/{room_id}")
 async def chat_endpoint(websocket: WebSocket, room_id: str, access_token: str = Query(...), db: Session = Depends(get_db)):
@@ -47,7 +47,7 @@ async def chat_endpoint(websocket: WebSocket, room_id: str, access_token: str = 
     chat_manager.disconnect(room_id, websocket)
     await room.broadcast({"time": time.time(), "username":username, "msg": "left the chat", "disconnected": True}, save=False)
 
-engine = Engine()
+# engine = Engine()
 
 @router.websocket("/blackjack/{room_id}")
 async def blackjack_endpoint(websocket: WebSocket, room_id: str, access_token: str = Query(...), db: Session = Depends(get_db)):
@@ -59,7 +59,9 @@ async def blackjack_endpoint(websocket: WebSocket, room_id: str, access_token: s
 
   username = access_token
 
-  await engine.connect(websocket, username)
+  # await engine.connect(websocket, username)
+  engine = await blackjack_manager.connect(room_id, websocket, username)
+
   # await websocket.send_json(engine.state)
   try:
     while True:
