@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import desc
 from sqlalchemy.orm import Session
 from ..models.bjtable import BJTable
 from ..models.user import User
@@ -57,10 +58,10 @@ async def delete(table_id: int, user: Annotated[User, Depends(get_current_user)]
     return {"success": True}
   raise HTTPException(status_code=400, detail="Users still in table")
 
-@router.post("/search")
+@router.post("/search") # This should be a GET request TODO
 async def search(db: Session = Depends(get_db)):
   # Search for a table
-  table = db.query(BJTable).filter(BJTable.n_players < 4).first()
+  table = db.query(BJTable).filter(BJTable.n_players < 4).order_by(desc(BJTable.n_players)).first()
   if table:
     return {"table_id": table.id}
   else:
