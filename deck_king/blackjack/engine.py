@@ -9,15 +9,20 @@ class GameState(Enum):
   PLAYING = auto()
   DEALER = auto()
   END = auto()
+  PAUSE = auto()
 
 class Engine:
   def __init__(self):
     self.room = Room(0)
     self.connections: dict[WebSocket, str] = {}
     self.waiting_connections: dict[WebSocket, str] = {}
-    self.turn = 0
+    # self.turn = 0 # TODO: sort by username im done``
+    self.turn: list[str] = ...
 
     self.deck = Deck()
+
+    self.game_state_before_pause = None
+    self.players_paused: dict[str, tuple[PlayerState, float, list[Card]]] = {}
     
     self.game_state: GameState = ...
     self.players_state: dict[WebSocket, PlayerState] = ... 
@@ -27,6 +32,9 @@ class Engine:
 
     # self.reset()
 
+  def make_turns(self):
+    return sorted(self.connections.values())
+
   async def reset(self):
     # Add waiting connections to connections
     for ws, username in self.waiting_connections.items():
@@ -34,7 +42,8 @@ class Engine:
     self.waiting_connections = {}
 
     # Reset game state
-    self.turn = 0
+    # self.turn = 0
+    self.turn = self.make_turns()
     self.deck.shuffle()
     self.game_state = GameState.BET
     self.players_state = {ws: PlayerState.PLAYING for ws in self.connections}
@@ -43,11 +52,6 @@ class Engine:
     self.dealer_cards = []
 
     await self.broadcast_state()
-    # Send 1st player to bet
-    # if len(self.connections) > 0:
-      # conn_list = list(self.connections)
-      # ws = conn_list[self.turn]
-      # await ws.send_json({"turn": self.connections[ws], "action": "bet"})
 
     print("[INFO] Resetting engine with ", len(self.connections), " players")
     print("[INFO] Connections: ", self.connections)
@@ -56,34 +60,85 @@ class Engine:
 
   async def connect(self, websocket: WebSocket, username: str):
     await self.room.connect(websocket)
-    self.waiting_connections[websocket] = username
-    # Player wont play until next reset
+
+    if username in self.players_paused: # TODO: test test test
+      print(f"[INFO] {username} is back")
+      self.connections[websocket] = username
+      self.turn = self.make_turns()
+      self.players_state[websocket], self.pots[websocket], self.cards[websocket] = self.players_paused[username]
+      del self.players_paused[username]
+
+      if len(self.players_paused) == 0:
+        print("[INFO] All players are back! Resuming game...")
+        self.resume()
+    else:
+      # Player wont play until next reset
+      self.waiting_connections[websocket] = username
 
     # If first player, start the game
     if len(self.connections) == 0:
       await self.reset()
+    else:
+      await self.broadcast_state() # TODO: causes some bugs (4)
   
   def disconnect(self, websocket: WebSocket):
-    if websocket == self.websocket: # TODO: might not work
-      self.turn += 1
-      if self.turn >= len(self.connections):
-        self.turn = 0
+    # if websocket == self.websocket: # TODO: might not work
+      # self.turn += 1
+      # if self.turn >= len(self.connections):
+      #   self.turn = 0
+    username = self.connections[websocket]
+    del self.turn[self.turn.index(username)]
     
     self.room.disconnect(websocket)
     del self.connections[websocket]
-    # TODO Bug probably, should be replace with a ghost untill reset i feel 
+    del self.pots[websocket]
+    del self.cards[websocket]
+    del self.players_state[websocket]
   
-  def pause(self, websocket: WebSocket):
-    # TODO
-    # everything pauses or player just skips until return?
-    pass
+  async def pause(self, websocket: WebSocket):
+    # Save state
+    self.game_state_before_pause = self.game_state
+    # Change game state
+    self.game_state = GameState.PAUSE
+
+    # Save player
+    username = self.connections[websocket]
+    if username in self.players_paused:
+      raise Exception("Player already paused")
+    self.players_paused[username] = (self.players_state[websocket], self.pots[websocket], self.cards[websocket])
+
+    # # websocket is going to disconnect
+    # self.room.disconnect(websocket)
+
+    # # Also remove from connections
+    # del self.connections[websocket] # TODO Bug probably
+
+    await self.broadcast_state()
+
+  def resume(self):
+    if len(self.players_paused) > 0:
+      return # All players must be back
+
+    # Restore state
+    self.game_state = self.game_state_before_pause
 
   @property
   def websocket(self):
-    return list(self.connections.keys())[self.turn]
+    # return list(self.connections.keys())[self.turn]
+    print("========================================")
+    conn_inv = {v: k for k, v in self.connections.items()}
+    print(self.turn)
+    print(conn_inv)
+    return conn_inv[self.turn[0]]
+  
+  @property
+  def paused(self):
+    return self.game_state == GameState.PAUSE
   
   @property
   def state(self) -> dict:
+    print(self.connections)
+    print(self.pots)
     return {
       "state": str(self.game_state),
       "turn": self.connections[self.websocket],
@@ -98,6 +153,7 @@ class Engine:
     await self.room.broadcast(data)
 
   async def broadcast_state(self):
+    print("[INFO] Broadcasting state:", self.state)
     await self.broadcast(self.state)
 
   async def has_blackjack(self, websocket):
@@ -169,6 +225,11 @@ class Engine:
     if websocket != self.websocket:
       # print(f"[INFO] {self.connections[websocket]} Not your turn")
       return
+    
+    print(f"[INFO] {self.connections[websocket]} feeding: {data}")
+    if "action" in data and data["action"] == "pause":
+      await self.pause(websocket)
+      return
 
     match self.players_state[websocket]:
       case PlayerState.PLAYING:
@@ -194,15 +255,18 @@ class Engine:
               self.players_state[websocket] = PlayerState.BUSTED
 
             # Pass turn
-            self.turn += 1
+            # self.turn += 1
+            self.turn.pop(0)
             # If all players have bet
-            if self.turn >= len(self.connections):
+            # if self.turn >= len(self.connections):
+            if len(self.turn) == 0:
               print("[INFO] All players have bet")
 
               # Finally reveal dealer cards
               self.dealer_cards = [self.deck.draw()] # One is hidden
               # Reset turn
-              self.turn = 0
+              # self.turn = 0
+              self.turn = self.make_turns()
 
               # Change game state
               if any([self.players_state[ws] == PlayerState.PLAYING for ws in self.connections]):
@@ -240,12 +304,15 @@ class Engine:
                   self.players_state[websocket] = PlayerState.BUSTED
                   keep_turn = False
                 
-                if not keep_turn:
+                if not keep_turn: # self.players_state[websocket] != PlayerState.PLAYING:
                   # Pass turn
-                  self.turn += 1
+                  # self.turn += 1
+                  self.turn.pop(0)
                   # If all players have played
-                  if self.turn >= len(self.connections):
-                    self.turn = 0
+                  # if self.turn >= len(self.connections):
+                  if len(self.turn) == 0:
+                    # self.turn = 0
+                    self.turn = self.make_turns()
                     self.game_state = GameState.DEALER
                     await self.dealer_turn()
                 else:
@@ -256,10 +323,13 @@ class Engine:
                 self.players_state[websocket] = PlayerState.STANDING
 
                 # Pass turn
-                self.turn += 1
+                # self.turn += 1
+                self.turn.pop(0)
                 # If all players have played
-                if self.turn >= len(self.connections):
-                  self.turn = 0
+                # if self.turn >= len(self.connections):
+                if len(self.turn) == 0:
+                  # self.turn = 0
+                  self.turn = self.make_turns()
                   self.game_state = GameState.DEALER
                   await self.dealer_turn()
                 else:
@@ -274,6 +344,8 @@ class Engine:
             pass # TODO
           case GameState.END:
             pass # TODO
+          case GameState.PAUSE:
+            pass
 
       case PlayerState.STANDING:
         pass # TODO

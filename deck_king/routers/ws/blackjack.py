@@ -17,6 +17,10 @@ class BlackjackManager:
     if key in self.rooms:
       self.rooms[key].disconnect(player)
 
+      # Skip GC if room is paused
+      if self.rooms[key].paused:
+        return
+
       # Small GC
       if len(self.rooms[key].connections) == 0:
         print(f"Blackjack room#{key} is empty, deleting it")

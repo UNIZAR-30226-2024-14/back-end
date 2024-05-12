@@ -67,7 +67,7 @@ async def blackjack_endpoint(websocket: WebSocket, room_id: str, access_token: s
 
       await engine.feed(websocket, data)
   except WebSocketDisconnect:
-    engine.disconnect(websocket)
+    blackjack_manager.disconnect(room_id, websocket)
   
 # TODO FOR TESTING PURPOSES ONLY
 
