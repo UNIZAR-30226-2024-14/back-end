@@ -71,6 +71,7 @@ class Engine:
       if len(self.players_paused) == 0:
         print("[INFO] All players are back! Resuming game...")
         self.resume()
+        await self.broadcast_state()
     else:
       # Player wont play until next reset
       self.waiting_connections[websocket] = username
@@ -78,8 +79,6 @@ class Engine:
     # If first player, start the game
     if len(self.connections) == 0:
       await self.reset()
-    else:
-      await self.broadcast_state() # TODO: causes some bugs (4)
   
   def disconnect(self, websocket: WebSocket):
     # if websocket == self.websocket: # TODO: might not work
