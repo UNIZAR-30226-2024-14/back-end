@@ -6,7 +6,7 @@ import time
 
 from .ws.chat import ChatManager
 from .ws.blackjack import BlackjackManager
-from ..blackjack.engine import Engine
+import sys
 
 # See: https://fastapi.tiangolo.com/tutorial/bigger-applications/
 #      https://fastapi.tiangolo.com/advanced/websockets/
@@ -23,12 +23,12 @@ blackjack_manager = BlackjackManager()
 
 @router.websocket("/chat/{room_id}")
 async def chat_endpoint(websocket: WebSocket, room_id: str, access_token: str = Query(...), db: Session = Depends(get_db)):
-  # try:
-  #   username = (get_current_user(access_token, db)).username
-  # except Exception as e:
-  #   print(f"ERROR (WS chat): {e}", file=sys.stderr)
-  #   return
-  username = access_token
+  try:
+    username = (get_current_user(access_token, db)).username
+  except Exception as e:
+    print(f"ERROR (WS chat): {e}", file=sys.stderr)
+    return
+  # username = access_token
 
   room = await chat_manager.connect(room_id, websocket)
   try:
@@ -40,8 +40,6 @@ async def chat_endpoint(websocket: WebSocket, room_id: str, access_token: str = 
 
       print(data)
 
-      # if sync then sync
-
       await room.broadcast({"time": time.time(), "username": username, "message": data["message"]}, save=True)
   except WebSocketDisconnect:
     chat_manager.disconnect(room_id, websocket)
@@ -49,13 +47,11 @@ async def chat_endpoint(websocket: WebSocket, room_id: str, access_token: str = 
 
 @router.websocket("/blackjack/{room_id}")
 async def blackjack_endpoint(websocket: WebSocket, room_id: str, access_token: str = Query(...), db: Session = Depends(get_db)):
-  # try:
-  #   username = (get_current_user(access_token, db)).username
-  # except Exception as e:
-  #   print(f"ERROR (WS Blackjack): {e}", file=sys.stderr)
-  #   return
-
-  username = access_token
+  try:
+    username = (get_current_user(access_token, db)).username
+  except Exception as e:
+    print(f"ERROR (WS Blackjack): {e}", file=sys.stderr)
+    return
 
   engine = await blackjack_manager.connect(room_id, websocket, username)
   try:

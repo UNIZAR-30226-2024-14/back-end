@@ -20,8 +20,6 @@ def test_chat():
   response = register(client, username, "test@test.com", "test")
   access_token = response.json()["access_token"]
 
-  username = access_token # TODO: change
-
   with client.websocket_connect(f"/ws/chat/{room_id}?access_token={access_token}") as websocket:
     websocket.send_json(
       {"message": "Hello, world!"}
