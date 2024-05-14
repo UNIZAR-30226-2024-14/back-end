@@ -170,6 +170,7 @@ class Engine:
       # print(f"[INFO] {self.connections[websocket]} Not your turn")
       return
 
+    print(f"[INFO] {self.connections[websocket]} feeding: {data}")
     match self.players_state[websocket]:
       case PlayerState.PLAYING:
         # Game state machine

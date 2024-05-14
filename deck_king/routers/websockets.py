@@ -4,6 +4,8 @@ from ..auth import get_current_user
 from ..db import get_db
 import time
 
+from ..models.bjtable import BJTable
+
 from .ws.chat import ChatManager
 from .ws.blackjack import BlackjackManager
 import sys
@@ -64,6 +66,9 @@ async def blackjack_endpoint(websocket: WebSocket, room_id: str, access_token: s
       await engine.feed(websocket, data)
   except WebSocketDisconnect:
     engine.disconnect(websocket)
+    # TODO: disconnect from database room
+    
+
   
 # TODO FOR TESTING PURPOSES ONLY
 
