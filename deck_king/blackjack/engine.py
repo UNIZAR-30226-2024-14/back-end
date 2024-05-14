@@ -49,6 +49,7 @@ class Engine:
       # ws = conn_list[self.turn]
       # await ws.send_json({"turn": self.connections[ws], "action": "bet"})
 
+    print("[INFO] State: ",self.state)
     print("[INFO] Resetting engine with ", len(self.connections), " players")
     print("[INFO] Connections: ", self.connections)
   

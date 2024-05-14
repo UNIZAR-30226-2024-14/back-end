@@ -66,8 +66,18 @@ async def blackjack_endpoint(websocket: WebSocket, room_id: str, access_token: s
       await engine.feed(websocket, data)
   except WebSocketDisconnect:
     engine.disconnect(websocket)
-    # TODO: disconnect from database room
-    
+
+    table = db.query(BJTable).filter(BJTable.id == room_id).first()
+    print("Should modify table: ", table)
+    # if table.n_players == 1:
+    #   db.delete(table)
+    # else:
+    #   for i in range(4):
+    #     if getattr(table, f"player{i+1}") == username:
+    #       setattr(table, f"player{i+1}", None)
+    #       break
+    # db.commit()
+
 
   
 # TODO FOR TESTING PURPOSES ONLY
